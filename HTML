@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>神奇盒子 V8 - 感謝卡製作器</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #f7f9fa;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* --- 主要佈局 --- */
+        #app-container {
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        header {
+            background-color: #0056b3; color: white; padding: 15px;
+            text-align: center; font-size: 2rem; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* --- 工作區 --- */
+        #workspace {
+            flex: 1; display: flex; overflow: hidden;
+        }
+
+        /* 左邊控制面板 */
+        #control-panel {
+            width: 40%; background: #fff; padding: 20px;
+            box-sizing: border-box; overflow-y: auto;
+            border-right: 5px solid #0056b3;
+        }
+
+        /* 右邊預覽畫布 */
+        #preview-panel {
+            width: 60%; display: flex; justify-content: center;
+            align-items: center; background: #e9ecef; padding: 20px;
+        }
+
+        /* --- 大按鈕與選項樣式 (低視能優化) --- */
+        .section-title {
+            font-size: 1.6rem; font-weight: bold; margin: 20px 0 10px 0;
+            color: #333; border-left: 8px solid #0056b3; padding-left: 10px;
+        }
+
+        .option-grid {
+            display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+
+        .big-btn {
+            flex: 1; min-width: 120px; padding: 20px 10px;
+            font-size: 1.4rem; font-weight: bold; text-align: center;
+            background: white; border: 4px solid #ccc; border-radius: 15px;
+            cursor: pointer; transition: all 0.2s;
+        }
+
+        .big-btn.selected {
+            background: #dbeaff; border-color: #0056b3; color: #0056b3;
+            transform: scale(1.03); box-shadow: 0 4px 10px rgba(0,86,179,0.3);
+        }
+
+        /* --- 卡片本體 --- */
+        #card {
+            width: 450px; height: 600px; background: white;
+            border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative; display: flex; flex-direction: column;
+            justify-content: space-between; padding: 40px; box-sizing: border-box;
+            background-size: cover; background-position: center;
+            transition: all 0.3s;
+        }
+
+        #card-title {
+            font-size: 2.5rem; font-weight: bold; text-align: center;
+            color: #333; text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
+        }
+
+        #card-sticker {
+            font-size: 8rem; text-align: center; margin: auto;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        #card-footer {
+            font-size: 2rem; font-weight: bold; text-align: center;
+            color: #555; background: rgba(255,255,255,0.7);
+            padding: 10px; border-radius: 10px;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* 生成按鈕 */
+        #action-btn {
+            display: block; width: 100%; padding: 25px;
+            background-color: #28a745; color: white;
+            font-size: 2rem; font-weight: bold; border: none;
+            border-radius: 20px; cursor: pointer; margin-top: 30px;
+            box-shadow: 0 6px 0 #1e7e34;
+        }
+        #action-btn:active {
+            transform: translateY(4px); box-shadow: 0 2px 0 #1e7e34;
+        }
+
+        /* --- 慶祝畫面 --- */
+        #celebrate-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.9); z-index: 1000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="cheer-sound" src="cheer.mp3"></audio>
+
+    <div id="app-container">
+        <header>💝 謝謝您！我的專屬感謝卡 💝</header>
+        
+        <div id="workspace">
+            <div id="control-panel">
+                
+                <div class="section-title">1. 選擇送給誰</div>
+                <div class="option-grid">
+                    <button class="big-btn selected" onclick="targetSelected(this, '🌸 媽媽 🌸')">👩 媽媽</button>
+                    <button class="big-btn" onclick="targetSelected(this, '🌟 老師 🌟')">👨‍🏫 老師</button>
+                    <button class="big-btn" onclick="targetSelected(this, '❤️ 爸爸 ❤️')">👨 爸爸</button>
+                    <button class="big-btn" onclick="targetSelected(this, '✨ 朋友 ✨')">🧑 朋友</button>
+                </div>
+
+                <div class="section-title">2. 選擇卡片背景</div>
+                <div class="option-grid">
+                    <button class="big-btn selected" onclick="bgSelected(this, 'frozen.jpg')">冰雪風格</button>
+                    <button class="big-btn" onclick="bgSelected(this, 'peppapig.jpg')">粉紅豬豬</button>
+                    <button class="big-btn" onclick="bgSelected(this, '#fff3cd')">溫暖黃色</button>
+                    <button class="big-btn" onclick="bgSelected(this, '#f8d7da')">甜蜜粉紅</button>
+                </div>
+
+                <div class="section-title">3. 選擇祝福貼紙</div>
+                <div class="option-grid">
+                    <button class="big-btn selected" onclick="stickerSelected(this, '❤️')">❤️ 愛心</button>
+                    <button class="big-btn" onclick="stickerSelected(this, '🎁')">🎁 禮物</button>
+                    <button class="big-btn" onclick="stickerSelected(this, '👍')">👍 棒！</button>
+                    <button class="big-btn" onclick="stickerSelected(this, '💐')">💐 花束</button>
+                </div>
+
+                <button id="action-btn" onclick="finishCard()">🎉 製作好了！</button>
+            </div>
+
+            <div id="preview-panel">
+                <div id="card">
+                    <div id="card-title">🌸 媽媽 🌸</div>
+                    <div id="card-sticker">❤️</div>
+                    <div id="card-footer">謝謝您的照顧！</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="celebrate-overlay" onclick="closeCelebrate()">
+        <h1 style="color: gold; font-size: 3.5rem; text-align: center; margin-bottom: 20px;">🎉 卡片製作成功！ 🎉</h1>
+        <p style="color: white; font-size: 1.8rem; text-align: center;">長按畫面或拍螢幕可以把卡片存下來喔！</p>
+        <button class="big-btn" style="background: #28a745; color: white; border: none; padding: 15px 40px; font-size: 1.8rem;">再做一張</button>
+    </div>
+
+    <script>
+        const audio = document.getElementById('cheer-sound');
+        const card = document.getElementById('card');
+        const cardTitle = document.getElementById('card-title');
+        const cardSticker = document.getElementById('card-sticker');
+        const celebrateOverlay = document.getElementById('celebrate-overlay');
+        const previewPanel = document.getElementById('preview-panel');
+
+        // 預設初始化
+        card.style.backgroundImage = "url('frozen.jpg')";
+
+        function targetSelected(btn, text) {
+            clearSelection(btn);
+            cardTitle.innerText = text;
+            speak("送給" + text);
+        }
+
+        function bgSelected(btn, bgValue) {
+            clearSelection(btn);
+            if (bgValue.includes('.')) {
+                card.style.backgroundColor = "transparent";
+                card.style.backgroundImage = `url('${bgValue}')`;
+            } else {
+                card.style.backgroundImage = "none";
+                card.style.backgroundColor = bgValue;
+            }
+            speak("更換卡片背景");
+        }
+
+        function stickerSelected(btn, emoji) {
+            clearSelection(btn);
+            cardSticker.innerText = emoji;
+            speak("選擇貼紙");
+        }
+
+        function clearSelection(currentBtn) {
+            const siblings = currentBtn.parentElement.children;
+            for (let sibling of siblings) {
+                sibling.classList.remove('selected');
+            }
+            currentBtn.classList.add('selected');
+        }
+
+        function finishCard() {
+            // 播放聲音
+            try {
+                audio.currentTime = 0;
+                audio.play();
+            } catch(e) { console.log(e); }
+
+            speak("卡片製作成功！太棒了！");
+
+            // 將卡片移入放大慶祝層
+            celebrateOverlay.style.display = 'flex';
+            celebrateOverlay.appendChild(card);
+        }
+
+        function closeCelebrate() {
+            celebrateOverlay.style.display = 'none';
+            previewPanel.appendChild(card); // 放回預覽區
+            audio.pause();
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'zh-HK'; // 廣東話，可改 zh-TW
+                u.rate = 0.8;
+                window.speechSynthesis.speak(u);
+            }
+        }
+    </script>
+</body>
+</html>
