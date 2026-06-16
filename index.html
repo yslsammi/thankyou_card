@@ -2,36 +2,42 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>創意感謝卡製作器 - 主題專屬貼紙版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>創意感謝卡製作器 - iPad 最佳化版</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: "Microsoft JhengHei", "Linear Sans", sans-serif;
             background-color: #f7f9fa;
+            /* 鎖定 iPad 全螢幕不可滾動與選擇，防止原生手勢干擾 */
             user-select: none; -webkit-user-select: none;
+            overflow: hidden;
+            position: fixed;
         }
 
-        #app-container { display: flex; flex-direction: column; height: 100vh; }
+        #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         header {
             background-color: #ff6b6b; color: white; padding: 15px;
             text-align: center; font-size: 2rem; font-weight: bold;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex-shrink: 0;
         }
 
-        #workspace { flex: 1; display: flex; overflow: hidden; }
+        #workspace { flex: 1; display: flex; overflow: hidden; height: calc(100vh - 70px); }
 
         /* 左邊控制面板 */
         #control-panel {
             width: 40%; background: #fff; padding: 20px;
             box-sizing: border-box; overflow-y: auto;
             border-right: 5px solid #ff6b6b;
+            -webkit-overflow-scrolling: touch; /* iPad 順滑滾動 */
         }
 
         /* 右邊預覽畫布 */
         #preview-panel {
             width: 60%; display: flex; justify-content: center;
             align-items: center; background: #e9ecef; padding: 20px;
+            box-sizing: border-box;
         }
 
         .section-title {
@@ -46,6 +52,7 @@
             font-size: 1.2rem; font-weight: bold; text-align: center;
             background: white; border: 4px solid #ccc; border-radius: 15px;
             cursor: pointer; transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent; /* 消除 iPad 點擊藍色陰影 */
         }
 
         .big-btn.selected {
@@ -57,18 +64,20 @@
         .color-btn {
             width: 50px; height: 50px; border-radius: 50%; border: 4px solid #ccc;
             cursor: pointer; transition: transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
         }
         .color-btn.selected { border-color: #333; transform: scale(1.1); }
 
         /* 粗細拉桿 */
         .slider-container { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
-        .weight-slider { flex: 1; height: 15px; border-radius: 10px; cursor: pointer; }
+        .weight-slider { flex: 1; height: 25px; border-radius: 15px; cursor: pointer; } /* 變粗更方便手指拉 */
 
         /* --- 卡片主體與畫布組合 --- */
         #card-wrapper {
             position: relative; width: 450px; height: 600px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 20px;
             overflow: hidden; background: white;
+            transform: scale(0.95); /* 在小尺寸 iPad 介面上適度縮放防止溢出 */
         }
 
         #card-bg {
@@ -76,10 +85,11 @@
             z-index: 1; transition: background 0.5s ease;
         }
 
-        /* 畫布層 */
+        /* 畫布層 - iPad 觸控專屬核心優化 */
         #paintCanvas {
             position: absolute; top: 0; left: 0; z-index: 5;
-            cursor: crosshair; touch-action: none;
+            cursor: crosshair; 
+            touch-action: none; /* 徹底關閉 iPad 瀏覽器自帶的拖拽畫布手勢 */
         }
 
         /* 卡片文字層 */
@@ -108,6 +118,7 @@
             font-size: 1.8rem; font-weight: bold; border: none;
             border-radius: 20px; cursor: pointer; margin-top: 20px;
             box-shadow: 0 6px 0 #1e7e34;
+            -webkit-tap-highlight-color: transparent;
         }
         #action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #1e7e34; }
 
@@ -117,6 +128,7 @@
             font-size: 1.5rem; font-weight: bold; border: none;
             border-radius: 20px; cursor: pointer; margin-top: 15px;
             box-shadow: 0 6px 0 #bd2130;
+            -webkit-tap-highlight-color: transparent;
         }
         #clear-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #bd2130; }
 
@@ -124,6 +136,7 @@
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.9); z-index: 1000;
             display: none; flex-direction: column; justify-content: center; align-items: center;
+            touch-action: none;
         }
     </style>
 </head>
@@ -173,7 +186,7 @@
                 <div class="section-title">4. 選擇感謝貼紙 (點擊後喺卡片任意位置吸印章)</div>
                 <div class="option-grid">
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '❤️', '愛心')">❤️ 愛心</button>
-                    <button class="big-btn" onclick="toolSelected(this, '💖', '閃亮心')">💖 閃亮心</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '💖', '閃亮心')">💖 閃亮心</button>
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '🥰', '窩心')">🥰 窩心</button>
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '🙏', '多謝')">🙏 多謝</button>
                     
@@ -182,10 +195,10 @@
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '✉️', '心意信')">✉️ 心意信</button>
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '🍰', '蛋糕')">🍰 蛋糕</button>
                     
-                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '👍', '好棒')">👍 讚</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '👍', '叻叻')">👍 叻叻</button>
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '🌟', '星星')">🌟 星星</button>
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎈', '氣球')">🎈 氣球</button>
-                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎉', '爆炮')">🎉 爆炮</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎉', 'fireworks')">🎉 煙花</button>
                 </div>
 
                 <button id="action-btn" onclick="finishCard()">🎉 製作好喇！</button>
@@ -233,7 +246,12 @@
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
+                // 完美適配 iOS / iPadOS Web Audio 的環境
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            // 針對 iPad 靜音模式激活音訊鏈結
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
             }
         }
 
@@ -251,17 +269,59 @@
             osc.stop(audioCtx.currentTime + 0.04);
         }
 
+        function playFireworksSound() {
+            if (!audioCtx) return;
+            let now = audioCtx.currentTime;
+            
+            let osc1 = audioCtx.createOscillator();
+            let gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(200, now);
+            osc1.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+            gain1.gain.setValueAtTime(0.08, now);
+            gain1.gain.linearRampToValueAtTime(0.001, now + 0.15);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.15);
+            
+            setTimeout(() => {
+                let osc2 = audioCtx.createOscillator();
+                let gain2 = audioCtx.createGain();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(120, audioCtx.currentTime);
+                osc2.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+                gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.start();
+                osc2.stop(audioCtx.currentTime + 0.25);
+            }, 120);
+        }
+
         cardBg.style.background = "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)";
 
+        // iPad 精確座標計算（兼容 TouchEvent 與 MouseEvent）
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let clientX, clientY;
+            
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
             return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
         function startAction(e) {
-            initAudio();
+            initAudio(); // 確保 iPad 解鎖音效
             const pos = getPos(e);
             if (currentTool === 'draw') {
                 isPainting = true;
@@ -287,7 +347,12 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(currentSticker, pos.x, pos.y);
-                speak(currentStickerName + "！");
+                
+                if (currentStickerName === 'fireworks') {
+                    playFireworksSound();
+                } else {
+                    speak(currentStickerName + "！");
+                }
             }
         }
 
@@ -301,13 +366,26 @@
 
         function stopAction() { isPainting = false; }
 
+        // 桌面端事件偵聽
         canvas.addEventListener('mousedown', startAction);
         canvas.addEventListener('mousemove', doAction);
         window.addEventListener('mouseup', stopAction);
 
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startAction(e); });
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); doAction(e); });
-        canvas.addEventListener('touchend', stopAction);
+        // iPad 專屬雙向防禦手勢事件綁定
+        canvas.addEventListener('touchstart', (e) => { 
+            if(e.cancelable) e.preventDefault(); // 鎖定 iPad 網頁不要飄移
+            startAction(e); 
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => { 
+            if(e.cancelable) e.preventDefault(); // 阻斷 iPad 的預設拉動翻頁
+            doAction(e); 
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', (e) => {
+            if(e.cancelable) e.preventDefault();
+            stopAction();
+        }, { passive: false });
 
         function targetSelected(btn, text, speakText) {
             clearSelection(btn);
@@ -348,7 +426,11 @@
             if (tool === 'sticker') {
                 currentSticker = stickerEmoji;
                 currentStickerName = stickerName;
-                speak("準備吸" + stickerName + "印章");
+                if(stickerName === 'fireworks') {
+                    speak("準備吸煙花印章");
+                } else {
+                    speak("準備吸" + stickerName + "印章");
+                }
             }
         }
 
@@ -387,6 +469,13 @@
                 window.speechSynthesis.speak(u);
             }
         }
+
+        // 徹底阻斷 iPad 全局橡皮筋滾動回彈效果
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.tagName !== 'DIV' || !e.target.classList.contains('option-grid')) {
+                if(e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>
