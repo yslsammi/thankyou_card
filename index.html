@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>創意感謝卡製作器 - 自由背景版</title>
+    <title>創意感謝卡製作器 - 畫筆大升級版</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -60,6 +60,10 @@
         }
         .color-btn.selected { border-color: #333; transform: scale(1.1); }
 
+        /* 粗細拉桿樣式 */
+        .slider-container { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
+        .weight-slider { flex: 1; height: 15px; border-radius: 10px; cursor: pointer; }
+
         /* --- 卡片主體與畫布組合 --- */
         #card-wrapper {
             position: relative; width: 450px; height: 600px;
@@ -72,16 +76,16 @@
             z-index: 1; transition: background 0.5s ease;
         }
 
-        /* 畫布層：用來畫畫跟貼貼紙 */
+        /* 畫布層 */
         #paintCanvas {
             position: absolute; top: 0; left: 0; z-index: 5;
             cursor: crosshair; touch-action: none;
         }
 
-        /* 卡片文字層（確保在最上層，不會被畫畫蓋住） */
+        /* 卡片文字層 */
         .card-text-layer {
             position: absolute; top:0; left:0; width:100%; height:100%;
-            z-index: 10; pointer-events: none; /* 穿透點擊，不影響畫畫 */
+            z-index: 10; pointer-events: none; 
             display: flex; flex-direction: column; justify-content: space-between;
             padding: 40px; box-sizing: border-box;
         }
@@ -125,8 +129,6 @@
 </head>
 <body>
 
-    <audio id="cheer-sound" src="cheer.mp3"></audio>
-
     <div id="app-container">
         <header>🎨 自由創作！我的專屬感謝卡 🎨</header>
         
@@ -146,15 +148,26 @@
                     <button class="big-btn" onclick="bgGenerated(this, 'linear-gradient(135deg, #ffcc33 0%, #ffb347 100%)')">🌅 晨曦暖橘</button>
                     <button class="big-btn" onclick="bgGenerated(this, 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)')">🌌 夢幻星空</button>
                     <button class="big-btn" onclick="bgGenerated(this, 'linear-gradient(135deg, #a8ff78 0%, #78ffd6 100%)')">🍀 療癒森林</button>
+                    <button class="big-btn" onclick="bgGenerated(this, '#ffffff')">⚪ 純白背景</button>
+                    <button class="big-btn" onclick="bgGenerated(this, '#000000')">⚫ 純黑背景</button>
                 </div>
 
-                <div class="section-title">3. 畫筆顏色 (點擊可在卡片上畫畫)</div>
+                <div class="section-title">3. 選擇畫筆與螢光色</div>
                 <div class="option-grid">
-                    <button class="color-btn selected" style="background: #ff0000;" onclick="colorSelected(this, '#ff0000')"></button>
-                    <button class="color-btn" style="background: #0000ff;" onclick="colorSelected(this, '#0000ff')"></button>
-                    <button class="color-btn" style="background: #00aa00;" onclick="colorSelected(this, '#00aa00')"></button>
-                    <button class="color-btn" style="background: #ffcc00;" onclick="colorSelected(this, '#ffcc00')"></button>
-                    <button class="big-btn" style="min-width:70px; padding:8px;" onclick="toolSelected(this, 'draw')">✏️ 畫筆</button>
+                    <button class="color-btn selected" style="background: #ff0000;" onclick="colorSelected(this, '#ff0000', false)"></button>
+                    <button class="color-btn" style="background: #0000ff;" onclick="colorSelected(this, '#0000ff', false)"></button>
+                    <button class="color-btn" style="background: #00aa00;" onclick="colorSelected(this, '#00aa00', false)"></button>
+                    <button class="color-btn" style="background: #000000;" onclick="colorSelected(this, '#000000', false)"></button>
+                    
+                    <button class="color-btn" style="background: #ccff00; box-shadow: 0 0 10px #ccff00;" onclick="colorSelected(this, 'rgba(204,255,0,0.4)', true)"></button>
+                    <button class="color-btn" style="background: #ff007f; box-shadow: 0 0 10px #ff007f;" onclick="colorSelected(this, 'rgba(255,0,127,0.4)', true)"></button>
+                    <button class="color-btn" style="background: #00ffff; box-shadow: 0 0 10px #00ffff;" onclick="colorSelected(this, 'rgba(0,255,255,0.4)', true)"></button>
+                </div>
+
+                <div class="slider-container">
+                    <span style="font-size: 1.2rem; font-weight: bold; color: #555;">✏️ 畫筆粗細:</span>
+                    <input type="range" id="brush-weight" class="weight-slider" min="2" max="40" value="8" onchange="weightChanged(this.value)">
+                    <span id="weight-display" style="font-size: 1.2rem; font-weight: bold; color: #ff6b6b;">8</span>
                 </div>
 
                 <div class="section-title">4. 選擇貼紙 (點擊後在卡片任意處蓋章)</div>
@@ -189,14 +202,12 @@
     </div>
 
     <script>
-        const audio = document.getElementById('cheer-sound');
         const cardBg = document.getElementById('card-bg');
         const cardTitle = document.getElementById('card-title');
         const celebrateOverlay = document.getElementById('celebrate-overlay');
         const previewPanel = document.getElementById('preview-panel');
         const cardWrapper = document.getElementById('card-wrapper');
         
-        // Canvas 設定
         const canvas = document.getElementById('paintCanvas');
         const ctx = canvas.getContext('2d');
         
@@ -204,8 +215,36 @@
         let currentTool = 'draw'; 
         let currentColor = '#ff0000';
         let currentSticker = '';
+        let brushWeight = 8;
+        let isNeon = false;
 
-        // 預設背景（櫻花粉）
+        // 聲音合成器設定 (Web Audio API)
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // 產生繪畫時的輕快沙沙聲/咻咻聲
+        function playDrawSound() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            
+            osc.type = 'triangle'; // 三角波，聲音較為溫和不刺耳
+            osc.frequency.setValueAtTime(150 + Math.random() * 80, audioCtx.currentTime); // 隨機低頻音模擬摩擦聲
+            
+            // 快速淡出效果
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
         cardBg.style.background = "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)";
 
         function getPos(e) {
@@ -216,15 +255,31 @@
         }
 
         function startAction(e) {
+            initAudio(); // 初始化聲音環境
             const pos = getPos(e);
             if (currentTool === 'draw') {
                 isPainting = true;
                 ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y);
-                ctx.lineWidth = 6;
+                
+                // 設定畫筆屬性
+                ctx.lineWidth = brushWeight;
                 ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.strokeStyle = currentColor;
+
+                // 如果是螢光筆，增加特殊的發光效果與混色模式
+                if (isNeon) {
+                    ctx.globalCompositeOperation = 'multiply'; // 讓顏色像麥克筆一樣重疊
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = currentColor;
+                } else {
+                    ctx.globalCompositeOperation = 'source-over'; // 正常畫筆
+                    ctx.shadowBlur = 0;
+                }
             } else if (currentTool === 'sticker' && currentSticker) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.shadowBlur = 0;
                 ctx.font = '50px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -238,6 +293,9 @@
             const pos = getPos(e);
             ctx.lineTo(pos.x, pos.y);
             ctx.stroke();
+            
+            // 每移動一下就播一次繪畫沙沙聲
+            playDrawSound();
         }
 
         function stopAction() { isPainting = false; }
@@ -250,8 +308,6 @@
         canvas.addEventListener('touchmove', (e) => { e.preventDefault(); doAction(e); });
         canvas.addEventListener('touchend', stopAction);
 
-        // --- 控制功能 ---
-
         function targetSelected(btn, text) {
             clearSelection(btn);
             cardTitle.innerText = text;
@@ -261,15 +317,28 @@
         function bgGenerated(btn, gradientValue) {
             clearSelection(btn);
             cardBg.style.background = gradientValue;
+            if (gradientValue === '#000000') {
+                cardTitle.style.color = '#ffffff';
+                cardTitle.style.textShadow = '2px 2px 5px rgba(0,0,0,0.5)';
+            } else {
+                cardTitle.style.color = '#333333';
+                cardTitle.style.textShadow = '2px 2px 5px rgba(255,255,255,0.9)';
+            }
             speak("更換背景風格");
         }
 
-        function colorSelected(btn, color) {
+        function colorSelected(btn, color, neonFlag) {
             document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             currentColor = color;
+            isNeon = neonFlag;
             currentTool = 'draw';
-            speak("畫筆換顏色");
+            speak(neonFlag ? "使用螢光筆" : "使用彩色筆");
+        }
+
+        function weightChanged(val) {
+            brushWeight = val;
+            document.getElementById('weight-display').innerText = val;
         }
 
         function toolSelected(btn, tool, stickerEmoji = '') {
@@ -278,12 +347,11 @@
             if (tool === 'sticker') {
                 currentSticker = stickerEmoji;
                 speak("準備蓋章" + stickerEmoji);
-            } else {
-                speak("換回畫筆");
             }
         }
 
         function clearCanvas() {
+            ctx.globalCompositeOperation = 'source-over';
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             speak("清除完成");
         }
@@ -295,7 +363,6 @@
         }
 
         function finishCard() {
-            try { audio.currentTime = 0; audio.play(); } catch(e) {}
             speak("太漂亮了！卡片製作完成！");
             celebrateOverlay.style.display = 'flex';
             celebrateOverlay.appendChild(cardWrapper);
@@ -304,7 +371,6 @@
         function closeCelebrate() {
             celebrateOverlay.style.display = 'none';
             previewPanel.appendChild(cardWrapper);
-            audio.pause();
         }
 
         function speak(text) {
