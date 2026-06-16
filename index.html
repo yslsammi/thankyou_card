@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>創意感謝卡製作器 - 香港廣東話聲效優化版</title>
+    <title>創意感謝卡製作器 - 主題專屬貼紙版</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -42,8 +42,8 @@
         .option-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; }
 
         .big-btn {
-            flex: 1; min-width: 100px; padding: 15px 10px;
-            font-size: 1.3rem; font-weight: bold; text-align: center;
+            flex: 1; min-width: 90px; padding: 12px 8px;
+            font-size: 1.2rem; font-weight: bold; text-align: center;
             background: white; border: 4px solid #ccc; border-radius: 15px;
             cursor: pointer; transition: all 0.2s;
         }
@@ -60,7 +60,7 @@
         }
         .color-btn.selected { border-color: #333; transform: scale(1.1); }
 
-        /* 粗細拉桿樣式 */
+        /* 粗細拉桿 */
         .slider-container { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
         .weight-slider { flex: 1; height: 15px; border-radius: 10px; cursor: pointer; }
 
@@ -170,12 +170,22 @@
                     <span id="weight-display" style="font-size: 1.2rem; font-weight: bold; color: #ff6b6b;">8</span>
                 </div>
 
-                <div class="section-title">4. 選擇貼紙 (點擊後喺卡片任意位置吸印章)</div>
+                <div class="section-title">4. 選擇感謝貼紙 (點擊後喺卡片任意位置吸印章)</div>
                 <div class="option-grid">
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '❤️', '愛心')">❤️ 愛心</button>
-                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎁', '禮物')">🎁 禮物</button>
-                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '👍', '好棒')">👍 讚</button>
+                    <button class="big-btn" onclick="toolSelected(this, '💖', '閃亮心')">💖 閃亮心</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🥰', '窩心')">🥰 窩心</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🙏', '多謝')">🙏 多謝</button>
+                    
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '💐', '花束')">💐 花束</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎁', '禮物')">🎁 禮物</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '✉️', '心意信')">✉️ 心意信</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🍰', '蛋糕')">🍰 蛋糕</button>
+                    
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '👍', '好棒')">👍 讚</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🌟', '星星')">🌟 星星</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎈', '氣球')">🎈 氣球</button>
+                    <button class="big-btn" onclick="toolSelected(this, 'sticker', '🎉', '爆炮')">🎉 爆炮</button>
                 </div>
 
                 <button id="action-btn" onclick="finishCard()">🎉 製作好喇！</button>
@@ -215,11 +225,11 @@
         let currentTool = 'draw'; 
         let currentColor = '#ff0000';
         let currentSticker = '';
+        let currentStickerName = ''; 
         let brushWeight = 8;
         let isNeon = false;
-        let isSpeaking = false; // 紀錄廣東話語音係咪播緊
+        let isSpeaking = false;
 
-        // 聲音合成器設定 (Web Audio API)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
@@ -227,20 +237,14 @@
             }
         }
 
-        // 畫畫沙沙聲效果
         function playDrawSound() {
-            // 防撞聲機制：如果廣東話語音播緊，畫畫就唔出聲，廢事太嘈
             if (!audioCtx || isSpeaking) return;
-            
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
-            
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(130 + Math.random() * 60, audioCtx.currentTime);
-            
             gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
-            
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
@@ -263,7 +267,6 @@
                 isPainting = true;
                 ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y);
-                
                 ctx.lineWidth = brushWeight;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -284,9 +287,7 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(currentSticker, pos.x, pos.y);
-                
-                // 貼貼紙時，只播廣東話，唔播沙沙聲
-                speak("貼上" + currentSticker);
+                speak(currentStickerName + "！");
             }
         }
 
@@ -346,6 +347,7 @@
             currentTool = tool;
             if (tool === 'sticker') {
                 currentSticker = stickerEmoji;
+                currentStickerName = stickerName;
                 speak("準備吸" + stickerName + "印章");
             }
         }
@@ -373,21 +375,15 @@
             previewPanel.appendChild(cardWrapper);
         }
 
-        // 獨立香港廣東話發聲系統 (防撞聲優化)
         function speak(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // 㩒新掣即刻切斷舊語音
-                
+                window.speechSynthesis.cancel();
                 const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'zh-HK'; // 精準設定為香港廣東話
-                u.rate = 1.0;     // 正常講嘢速度
-                
-                // 語音開始播：標記狀態，暫停沙沙聲
+                u.lang = 'zh-HK';
+                u.rate = 1.0;
                 u.onstart = () => { isSpeaking = true; };
-                // 語音播完：放行沙沙聲
                 u.onend = () => { isSpeaking = false; };
                 u.onerror = () => { isSpeaking = false; };
-                
                 window.speechSynthesis.speak(u);
             }
         }
