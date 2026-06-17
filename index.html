@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>創意感謝卡製作器 - iPad 最佳化版</title>
+    <title>創意感謝卡製作器 - iPad 震撼大畫布版</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: "Microsoft JhengHei", "Linear Sans", sans-serif;
             background-color: #f7f9fa;
-            /* 鎖定 iPad 全螢幕不可滾動與選擇，防止原生手勢干擾 */
             user-select: none; -webkit-user-select: none;
             overflow: hidden;
             position: fixed;
@@ -25,59 +24,63 @@
 
         #workspace { flex: 1; display: flex; overflow: hidden; height: calc(100vh - 70px); }
 
-        /* 左邊控制面板 */
+        /* 左邊控制面板：精簡至 20%，讓畫布最大化 */
         #control-panel {
-            width: 40%; background: #fff; padding: 20px;
+            width: 20%; background: #fff; padding: 12px;
             box-sizing: border-box; overflow-y: auto;
             border-right: 5px solid #ff6b6b;
-            -webkit-overflow-scrolling: touch; /* iPad 順滑滾動 */
+            -webkit-overflow-scrolling: touch;
         }
 
-        /* 右邊預覽畫布 */
+        /* 右邊預覽畫布：震撼擴大至 80% 的超級大空間 */
         #preview-panel {
-            width: 60%; display: flex; justify-content: center;
-            align-items: center; background: #e9ecef; padding: 20px;
+            width: 80%; display: flex; justify-content: center;
+            align-items: center; background: #e9ecef; padding: 10px;
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         .section-title {
-            font-size: 1.6rem; font-weight: bold; margin: 20px 0 10px 0;
-            color: #333; border-left: 8px solid #ff6b6b; padding-left: 10px;
+            font-size: 1.2rem; font-weight: bold; margin: 12px 0 6px 0;
+            color: #333; border-left: 5px solid #ff6b6b; padding-left: 6px;
         }
 
-        .option-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; }
+        .option-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 
+        /* 配合 20% 寬度，按鈕字體與寬度微調 */
         .big-btn {
-            flex: 1; min-width: 90px; padding: 12px 8px;
-            font-size: 1.2rem; font-weight: bold; text-align: center;
-            background: white; border: 4px solid #ccc; border-radius: 15px;
+            flex: 1; min-width: 70px; padding: 8px 4px;
+            font-size: 1rem; font-weight: bold; text-align: center;
+            background: white; border: 2px solid #ccc; border-radius: 10px;
             cursor: pointer; transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent; /* 消除 iPad 點擊藍色陰影 */
+            -webkit-tap-highlight-color: transparent;
         }
 
         .big-btn.selected {
             background: #ffe3e3; border-color: #ff6b6b; color: #ff6b6b;
-            transform: scale(1.03); box-shadow: 0 4px 10px rgba(255,107,107,0.3);
+            transform: scale(1.02); box-shadow: 0 3px 6px rgba(255,107,107,0.2);
         }
 
-        /* 顏色圓鈕 */
+        /* 顏色圓鈕稍微縮小配合面板 */
         .color-btn {
-            width: 50px; height: 50px; border-radius: 50%; border: 4px solid #ccc;
+            width: 38px; height: 38px; border-radius: 50%; border: 2px solid #ccc;
             cursor: pointer; transition: transform 0.1s;
             -webkit-tap-highlight-color: transparent;
         }
         .color-btn.selected { border-color: #333; transform: scale(1.1); }
 
         /* 粗細拉桿 */
-        .slider-container { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
-        .weight-slider { flex: 1; height: 25px; border-radius: 15px; cursor: pointer; } /* 變粗更方便手指拉 */
+        .slider-container { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+        .weight-slider { flex: 1; height: 25px; border-radius: 15px; cursor: pointer; }
 
         /* --- 卡片主體與畫布組合 --- */
         #card-wrapper {
             position: relative; width: 450px; height: 600px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); border-radius: 20px;
             overflow: hidden; background: white;
-            transform: scale(0.95); /* 在小尺寸 iPad 介面上適度縮放防止溢出 */
+            /* 核心修改：放大倍率由 1.15 提升至 1.4，讓大畫面真正發揮威力 */
+            transform: scale(1.4); 
+            transform-origin: center center;
         }
 
         #card-bg {
@@ -85,11 +88,11 @@
             z-index: 1; transition: background 0.5s ease;
         }
 
-        /* 畫布層 - iPad 觸控專屬核心優化 */
+        /* 畫布層 */
         #paintCanvas {
             position: absolute; top: 0; left: 0; z-index: 5;
             cursor: crosshair; 
-            touch-action: none; /* 徹底關閉 iPad 瀏覽器自帶的拖拽畫布手勢 */
+            touch-action: none; 
         }
 
         /* 卡片文字層 */
@@ -111,26 +114,26 @@
             padding: 10px; border-radius: 10px;
         }
 
-        /* 按鈕效果 */
+        /* 功能按鈕 */
         #action-btn {
-            display: block; width: 100%; padding: 20px;
+            display: block; width: 100%; padding: 12px;
             background-color: #28a745; color: white;
-            font-size: 1.8rem; font-weight: bold; border: none;
-            border-radius: 20px; cursor: pointer; margin-top: 20px;
-            box-shadow: 0 6px 0 #1e7e34;
+            font-size: 1.4rem; font-weight: bold; border: none;
+            border-radius: 12px; cursor: pointer; margin-top: 15px;
+            box-shadow: 0 4px 0 #1e7e34;
             -webkit-tap-highlight-color: transparent;
         }
-        #action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #1e7e34; }
+        #action-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #1e7e34; }
 
         #clear-btn {
-            display: block; width: 100%; padding: 15px;
+            display: block; width: 100%; padding: 10px;
             background-color: #dc3545; color: white;
-            font-size: 1.5rem; font-weight: bold; border: none;
-            border-radius: 20px; cursor: pointer; margin-top: 15px;
-            box-shadow: 0 6px 0 #bd2130;
+            font-size: 1.2rem; font-weight: bold; border: none;
+            border-radius: 12px; cursor: pointer; margin-top: 10px;
+            box-shadow: 0 4px 0 #bd2130;
             -webkit-tap-highlight-color: transparent;
         }
-        #clear-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #bd2130; }
+        #clear-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #bd2130; }
 
         #celebrate-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -155,7 +158,7 @@
                     <button class="big-btn" onclick="targetSelected(this, '❤️ 爸爸 ❤️', '爸爸')">👨 爸爸</button>
                 </div>
 
-                <div class="section-title">2. 自由生成背景 (免上傳圖片)</div>
+                <div class="section-title">2. 自由生成背景</div>
                 <div class="option-grid">
                     <button class="big-btn selected" onclick="bgGenerated(this, 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)')">🌸 初春櫻花</button>
                     <button class="big-btn" onclick="bgGenerated(this, 'linear-gradient(135deg, #ffcc33 0%, #ffb347 100%)')">🌅 晨曦暖橘</button>
@@ -178,12 +181,12 @@
                 </div>
 
                 <div class="slider-container">
-                    <span style="font-size: 1.2rem; font-weight: bold; color: #555;">✏️ 畫筆粗細:</span>
+                    <span style="font-size: 1rem; font-weight: bold; color: #555;">✏️ 粗細:</span>
                     <input type="range" id="brush-weight" class="weight-slider" min="2" max="40" value="8" onchange="weightChanged(this.value)">
-                    <span id="weight-display" style="font-size: 1.2rem; font-weight: bold; color: #ff6b6b;">8</span>
+                    <span id="weight-display" style="font-size: 1rem; font-weight: bold; color: #ff6b6b;">8</span>
                 </div>
 
-                <div class="section-title">4. 選擇感謝貼紙 (點擊後喺卡片任意位置吸印章)</div>
+                <div class="section-title">4. 選擇感謝貼紙</div>
                 <div class="option-grid">
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '❤️', '愛心')">❤️ 愛心</button>
                     <button class="big-btn" onclick="toolSelected(this, 'sticker', '💖', '閃亮心')">💖 閃亮心</button>
@@ -246,10 +249,8 @@
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
-                // 完美適配 iOS / iPadOS Web Audio 的環境
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            // 針對 iPad 靜音模式激活音訊鏈結
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
@@ -302,7 +303,6 @@
 
         cardBg.style.background = "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)";
 
-        // iPad 精確座標計算（兼容 TouchEvent 與 MouseEvent）
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
             let clientX, clientY;
@@ -317,11 +317,15 @@
                 clientX = e.clientX;
                 clientY = e.clientY;
             }
-            return { x: clientX - rect.left, y: clientY - rect.top };
+            // 完美解決 transform: scale(1.4) 帶來的 iPad 點擊座標偏位問題
+            return { 
+                x: (clientX - rect.left) * (canvas.width / rect.width), 
+                y: (clientY - rect.top) * (canvas.height / rect.height) 
+            };
         }
 
         function startAction(e) {
-            initAudio(); // 確保 iPad 解鎖音效
+            initAudio(); 
             const pos = getPos(e);
             if (currentTool === 'draw') {
                 isPainting = true;
@@ -366,19 +370,17 @@
 
         function stopAction() { isPainting = false; }
 
-        // 桌面端事件偵聽
         canvas.addEventListener('mousedown', startAction);
         canvas.addEventListener('mousemove', doAction);
         window.addEventListener('mouseup', stopAction);
 
-        // iPad 專屬雙向防禦手勢事件綁定
         canvas.addEventListener('touchstart', (e) => { 
-            if(e.cancelable) e.preventDefault(); // 鎖定 iPad 網頁不要飄移
+            if(e.cancelable) e.preventDefault(); 
             startAction(e); 
         }, { passive: false });
         
         canvas.addEventListener('touchmove', (e) => { 
-            if(e.cancelable) e.preventDefault(); // 阻斷 iPad 的預設拉動翻頁
+            if(e.cancelable) e.preventDefault(); 
             doAction(e); 
         }, { passive: false });
         
@@ -452,10 +454,10 @@
             celebrateOverlay.appendChild(cardWrapper);
         }
 
-        function closeCelebrate() {
-            celebrateOverlay.style.display = 'none';
+        document.getElementById('celebrate-overlay').addEventListener('click', function() {
+            this.style.display = 'none';
             previewPanel.appendChild(cardWrapper);
-        }
+        });
 
         function speak(text) {
             if ('speechSynthesis' in window) {
@@ -470,7 +472,6 @@
             }
         }
 
-        // 徹底阻斷 iPad 全局橡皮筋滾動回彈效果
         document.addEventListener('touchmove', function(e) {
             if (e.target.tagName !== 'DIV' || !e.target.classList.contains('option-grid')) {
                 if(e.cancelable) e.preventDefault();
